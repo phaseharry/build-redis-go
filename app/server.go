@@ -29,7 +29,8 @@ func main() {
 		fmt.Printf("read in request %d bytes\n", bytesRead)
 		command := req[:bytesRead]
 		fmt.Printf("command: %s", string(command))
-		if string(command) == "PING" {
+		// doing exact match to redis RESP contract for now.
+		if string(command) == "*1\r\n$4\r\nPING\r\n" {
 			conn.Write([]byte("+PONG\r\n"))
 			continue
 		}
