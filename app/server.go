@@ -13,13 +13,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	conn, err := l.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
-	}
-	if err := handleConnection(conn); err != nil {
-		fmt.Println("Error handling connection: ", err.Error())
-		os.Exit(1)
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
+
+		go func() {
+			if err := handleConnection(conn); err != nil {
+				fmt.Println("Error handling connection: ", err.Error())
+			}
+		}()
 	}
 }
