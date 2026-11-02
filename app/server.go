@@ -13,27 +13,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error accepting connection: ", err.Error())
-			os.Exit(1)
-		}
-		// let request message be a max of 32 bytes for now
-		req := make([]byte, 32)
-		bytesRead, err := conn.Read(req)
-		if err != nil {
-			fmt.Println("Error reading request: ", err.Error())
-			continue
-		}
-		fmt.Printf("read in request %d bytes\n", bytesRead)
-		command := req[:bytesRead]
-		fmt.Printf("command: %s", string(command))
-		// doing exact match to redis RESP contract for now.
-		if string(command) == "*1\r\n$4\r\nPING\r\n" {
-			conn.Write([]byte("+PONG\r\n"))
-			continue
-		}
-		conn.Write([]byte("+ERROR: unknown command\r\n"))
+	conn, err := l.Accept()
+	if err != nil {
+		fmt.Println("Error accepting connection: ", err.Error())
+		os.Exit(1)
+	}
+	if err := handleConnection(conn); err != nil {
+		fmt.Println("Error handling connection: ", err.Error())
+		os.Exit(1)
 	}
 }
