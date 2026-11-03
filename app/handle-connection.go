@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"net"
+
+	"github.com/codecrafters-io/redis-starter-go/internal/command"
+	"github.com/codecrafters-io/redis-starter-go/internal/resp"
 )
 
 // when a client has connected, hold onto that connection and repeated
@@ -10,22 +13,29 @@ import (
 func handleConnection(conn net.Conn) error {
 	defer conn.Close()
 	// let request message be a max of 1024 bytes for now
-	req := make([]byte, 1024)
+	reqBuffer := make([]byte, 1024)
 	for {
-		bytesRead, err := conn.Read(req)
+		bytesRead, err := conn.Read(reqBuffer)
 		if err != nil {
-			fmt.Println("Error reading request: ", err.Error())
+			fmt.Println("Error reading request bytes: ", err.Error())
 			break
 		}
 		fmt.Printf("read in request %d bytes\n", bytesRead)
-		command := req[:bytesRead]
-		fmt.Printf("command: %s", string(command))
-		// doing exact match to redis RESP contract for now.
-		if string(command) == "*1\r\n$4\r\nPING\r\n" {
-			conn.Write([]byte("+PONG\r\n"))
-			continue
+		req, err := resp.NewRequest(reqBuffer[:bytesRead])
+		if err != nil {
+			fmt.Println("Error creating request: ", err.Error())
+			break
 		}
-		conn.Write([]byte("+ERROR: unknown command\r\n"))
+
+		res, err := command.RunCommand(req)
+		if err != nil {
+			errMessage := fmt.Sprintf("Error running command: %s, %s", req.Command, err.Error())
+			fmt.Println(errMessage)
+			fmt.Fprintf(conn, "+ERROR: %s\r\n", errMessage)
+			break
+		}
+
+		conn.Write(res.Content)
 	}
 
 	return nil
